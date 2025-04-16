@@ -9,10 +9,15 @@ Watch Party Synchronisée est une application développée exclusivement en Pyth
 ## 🚀 Fonctionnalités principales
 
 -📺 Lecture synchronisée de vidéos YouTube
+
 -🎮 Contrôle centralisé par l’hôte (lecture, pause, seek)
+
 -🌐 Communication réseau via socket ou via Ngrok pour le mode en ligne
+
 -🤖 Automatisation du navigateur via Selenium
+
 -💬 Chat texte intégré entre les participants
+
 -🧵 Multi-threading pour gérer commandes et échanges simultanés
 
 ## 🖥️ Fonctionnement

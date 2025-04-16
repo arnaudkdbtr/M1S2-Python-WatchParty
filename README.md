@@ -8,6 +8,22 @@ Watch Party Synchronisée est une application développée exclusivement en Pyth
 
 🧪 Ce projet a été réalisé dans le cadre de l’UE Technique de Programmation, un cours du second semestre du Master 1, dédié exclusivement au développement Python.
 
+## ✅ Prérequis
+
+```
+pip install selenium
+```
+```
+pip install pyngrok requests
+```
+```
+pip install pyperclip pillow
+```
+
+⚠️ Important : L’application utilise Selenium, qui nécessite Chromedriver. Assurez-vous que :
+- chromedriver est installé sur votre système.
+- Il est compatible avec votre version de Google Chrome.
+
 ## 🚀 Fonctionnalités principales
 
 -📺 Lecture synchronisée de vidéos YouTube

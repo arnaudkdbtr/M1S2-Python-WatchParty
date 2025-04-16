@@ -1,7 +1,8 @@
-#A installer au préalable dans le terminal
+#Installer dans le terminal au préalable
 #pip install pyperclip qrcode pillow
 #pip install selenium
 #pip install pyngrok requests
+
 import socket
 import threading
 import json
@@ -709,10 +710,10 @@ class WatchPartyApp:
         
         ttk.Label(mode_frame, text="Mode:").pack(side=tk.LEFT, padx=5)
         
-        self.host_button = ttk.Button(mode_frame, text="Démarrer comme Hôte", command=self.start_as_host)
+        self.host_button = ttk.Button(mode_frame, text="Démarrer comme Hôte", command=self.show_host_dialog)
         self.host_button.pack(side=tk.LEFT, padx=5)
         
-        self.client_button = ttk.Button(mode_frame, text="Rejoindre comme Client", command=self.start_as_client)
+        self.client_button = ttk.Button(mode_frame, text="Rejoindre comme Client", command=self.show_client_dialog)
         self.client_button.pack(side=tk.LEFT, padx=5)
         
         # Ligne 2: Configuration réseau
@@ -720,13 +721,16 @@ class WatchPartyApp:
         network_frame.pack(fill=tk.X, padx=5, pady=5)
         
         ttk.Label(network_frame, text="Adresse serveur:").pack(side=tk.LEFT, padx=5)
-        ttk.Entry(network_frame, textvariable=self.server_addr, width=15).pack(side=tk.LEFT, padx=5)
+        self.server_addr_entry = ttk.Entry(network_frame, textvariable=self.server_addr, width=15)
+        self.server_addr_entry.pack(side=tk.LEFT, padx=5)
         
         ttk.Label(network_frame, text="Port:").pack(side=tk.LEFT, padx=5)
-        ttk.Entry(network_frame, textvariable=self.server_port, width=6).pack(side=tk.LEFT, padx=5)
+        self.server_port_entry = ttk.Entry(network_frame, textvariable=self.server_port, width=6)
+        self.server_port_entry.pack(side=tk.LEFT, padx=5)
         
         ttk.Label(network_frame, text="Nom d'utilisateur:").pack(side=tk.LEFT, padx=5)
-        ttk.Entry(network_frame, textvariable=self.username, width=15).pack(side=tk.LEFT, padx=5)
+        self.username_entry = ttk.Entry(network_frame, textvariable=self.username, width=15)
+        self.username_entry.pack(side=tk.LEFT, padx=5)
         
         # Section vidéo
         video_frame = ttk.LabelFrame(main_frame, text="Contrôle vidéo")
@@ -794,8 +798,71 @@ class WatchPartyApp:
         
         # Gestion de la fermeture de l'application
         self.master.protocol("WM_DELETE_WINDOW", self.on_closing)
+    
+    def show_host_dialog(self):
+        """Affiche la boîte de dialogue pour le mode hôte"""
+        # Demander le nom d'utilisateur
+        username = simpledialog.askstring("Nom d'utilisateur", "Entrez votre nom d'utilisateur:", 
+                                          initialvalue=self.username.get())
+        if not username:
+            return  # L'utilisateur a annulé
         
-    def start_as_host(self):
+        # Mettre à jour le nom d'utilisateur
+        self.username.set(username)
+        
+        # Demander si l'utilisateur souhaite activer ngrok
+        use_ngrok = messagebox.askyesno("Mode en ligne", 
+                                        "Souhaitez-vous activer le mode en ligne via Ngrok?\n\n"
+                                        "(Cela permettra à d'autres personnes de rejoindre depuis Internet)")
+        
+        # Désactiver les champs de configuration
+        self.server_addr_entry.config(state=tk.DISABLED)
+        self.server_port_entry.config(state=tk.DISABLED)
+        self.username_entry.config(state=tk.DISABLED)
+        
+        # Démarrer le serveur avec les options choisies
+        self.start_as_host(use_ngrok)
+    
+    def show_client_dialog(self):
+        """Affiche les boîtes de dialogue pour le mode client"""
+        # Demander l'adresse du serveur
+        server_addr = simpledialog.askstring("Adresse du serveur", "Entrez l'adresse du serveur:",
+                                            initialvalue=self.server_addr.get())
+        if not server_addr:
+            return  # L'utilisateur a annulé
+        
+        # Demander le port du serveur
+        server_port_str = simpledialog.askstring("Port du serveur", "Entrez le port du serveur:",
+                                                initialvalue=str(self.server_port.get()))
+        if not server_port_str:
+            return  # L'utilisateur a annulé
+        
+        try:
+            server_port = int(server_port_str)
+        except ValueError:
+            messagebox.showerror("Erreur", "Le port doit être un nombre entier")
+            return
+        
+        # Demander le nom d'utilisateur
+        username = simpledialog.askstring("Nom d'utilisateur", "Entrez votre nom d'utilisateur:",
+                                         initialvalue=self.username.get())
+        if not username:
+            return  # L'utilisateur a annulé
+        
+        # Mettre à jour les valeurs dans l'interface
+        self.server_addr.set(server_addr)
+        self.server_port.set(server_port)
+        self.username.set(username)
+        
+        # Désactiver les champs de configuration
+        self.server_addr_entry.config(state=tk.DISABLED)
+        self.server_port_entry.config(state=tk.DISABLED)
+        self.username_entry.config(state=tk.DISABLED)
+        
+        # Démarrer le client avec les paramètres
+        self.start_as_client()
+    
+    def start_as_host(self, use_ngrok=False):
         """Démarre l'application en mode hôte"""
         if self.client or self.server:
             self.disconnect()
@@ -839,8 +906,11 @@ class WatchPartyApp:
             self.add_system_message(f"Serveur démarré sur le port {port}")
             self.add_system_message(f"Connecté en tant qu'hôte : {self.client.username}")
             
-            # Proposer de configurer ngrok pour l'accès distant
-            self.configure_ngrok()
+            # Configurer ngrok si demandé
+            if use_ngrok:
+                self.configure_ngrok()
+            else:
+                self.configure_local_mode()
             
         except Exception as e:
             messagebox.showerror("Erreur", f"Erreur lors du démarrage du serveur: {e}")
@@ -848,94 +918,83 @@ class WatchPartyApp:
             
     def configure_ngrok(self):
         """Configure ngrok pour l'accès distant"""
-        # Demander à l'utilisateur s'il souhaite créer un tunnel ngrok
-        use_ngrok = messagebox.askyesno(
-            "Accès distant", 
-            "Voulez-vous créer un tunnel ngrok pour permettre l'accès à distance?\n\n"
-            "(Cela permettra à d'autres personnes de rejoindre votre session depuis Internet)"
-        )
+        # Votre token prédéfini
+        default_token = "2voI412xuqcxgr4AmOZFCQUGe3U_2VWwF2shALE626FYKbwhP"
         
-        if use_ngrok:
-            # Votre token prédéfini
-            default_token = "2voI412xuqcxgr4AmOZFCQUGe3U_2VWwF2shALE626FYKbwhP"
+        # Créer une boîte de dialogue personnalisée pour le token
+        token_dialog = tk.Toplevel(self.master)
+        token_dialog.title("Configuration ngrok")
+        token_dialog.geometry("500x200")
+        token_dialog.resizable(False, False)
+        token_dialog.transient(self.master)
+        token_dialog.grab_set()
+        
+        # Centrer la fenêtre
+        token_dialog.update_idletasks()
+        x = (token_dialog.winfo_screenwidth() - token_dialog.winfo_width()) // 2
+        y = (token_dialog.winfo_screenheight() - token_dialog.winfo_height()) // 2
+        token_dialog.geometry(f"+{x}+{y}")
+        
+        # Variable pour stocker le token
+        token_var = tk.StringVar(value=default_token)
+        
+        # Créer les widgets
+        frame = ttk.Frame(token_dialog, padding=10)
+        frame.pack(fill=tk.BOTH, expand=True)
+        
+        ttk.Label(frame, text="Token d'authentification ngrok:", font=("Arial", 11)).pack(pady=5)
+        ttk.Label(frame, text="Un token par défaut est fourni, mais vous pouvez en utiliser un autre.", 
+                 font=("Arial", 10)).pack(pady=2)
+        
+        token_entry = ttk.Entry(frame, textvariable=token_var, width=50)
+        token_entry.pack(pady=10, fill=tk.X)
+        
+        # Variable pour stocker le résultat
+        result = {"token": None, "cancelled": True}
+        
+        # Fonctions pour les boutons
+        def on_confirm():
+            result["token"] = token_var.get()
+            result["cancelled"] = False
+            token_dialog.destroy()
             
-            # Créer une boîte de dialogue personnalisée pour le token
-            token_dialog = tk.Toplevel(self.master)
-            token_dialog.title("Configuration ngrok")
-            token_dialog.geometry("500x200")
-            token_dialog.resizable(False, False)
-            token_dialog.transient(self.master)
-            token_dialog.grab_set()
+        def on_cancel():
+            token_dialog.destroy()
+        
+        # Boutons de confirmation et annulation
+        button_frame = ttk.Frame(frame)
+        button_frame.pack(pady=10, fill=tk.X)
+        
+        ttk.Button(button_frame, text="Confirmer", command=on_confirm).pack(side=tk.RIGHT, padx=5)
+        ttk.Button(button_frame, text="Annuler", command=on_cancel).pack(side=tk.RIGHT, padx=5)
+        
+        # Attendre que l'utilisateur ferme la boîte de dialogue
+        self.master.wait_window(token_dialog)
+        
+        # Si l'utilisateur a confirmé, continuer avec ngrok
+        if not result["cancelled"] and result["token"]:
+            # Configurer ngrok avec le token fourni
+            ngrok_host, ngrok_port = setup_ngrok(result["token"])
             
-            # Centrer la fenêtre
-            token_dialog.update_idletasks()
-            x = (token_dialog.winfo_screenwidth() - token_dialog.winfo_width()) // 2
-            y = (token_dialog.winfo_screenheight() - token_dialog.winfo_height()) // 2
-            token_dialog.geometry(f"+{x}+{y}")
-            
-            # Variable pour stocker le token
-            token_var = tk.StringVar(value=default_token)
-            
-            # Créer les widgets
-            frame = ttk.Frame(token_dialog, padding=10)
-            frame.pack(fill=tk.BOTH, expand=True)
-            
-            ttk.Label(frame, text="Token d'authentification ngrok:", font=("Arial", 11)).pack(pady=5)
-            ttk.Label(frame, text="Un token par défaut est fourni, mais vous pouvez en utiliser un autre.", 
-                     font=("Arial", 10)).pack(pady=2)
-            
-            token_entry = ttk.Entry(frame, textvariable=token_var, width=50)
-            token_entry.pack(pady=10, fill=tk.X)
-            
-            # Variable pour stocker le résultat
-            result = {"token": None, "cancelled": True}
-            
-            # Fonctions pour les boutons
-            def on_confirm():
-                result["token"] = token_var.get()
-                result["cancelled"] = False
-                token_dialog.destroy()
+            if ngrok_host and ngrok_port:
+                # Afficher les informations dans le chat
+                self.add_system_message("=== INFORMATIONS DE CONNEXION ===")
+                self.add_system_message(f"Tunnel ngrok créé avec succès!")
+                self.add_system_message(f"Les participants peuvent se connecter avec:")
+                self.add_system_message(f"Adresse: {ngrok_host}")
+                self.add_system_message(f"Port: {ngrok_port}")
                 
-            def on_cancel():
-                token_dialog.destroy()
-            
-            # Boutons de confirmation et annulation
-            button_frame = ttk.Frame(frame)
-            button_frame.pack(pady=10, fill=tk.X)
-            
-            ttk.Button(button_frame, text="Confirmer", command=on_confirm).pack(side=tk.RIGHT, padx=5)
-            ttk.Button(button_frame, text="Annuler", command=on_cancel).pack(side=tk.RIGHT, padx=5)
-            
-            # Attendre que l'utilisateur ferme la boîte de dialogue
-            self.master.wait_window(token_dialog)
-            
-            # Si l'utilisateur a confirmé, continuer avec ngrok
-            if not result["cancelled"] and result["token"]:
-                # Configurer ngrok avec le token fourni
-                ngrok_host, ngrok_port = setup_ngrok(result["token"])
-                
-                if ngrok_host and ngrok_port:
-                    # Afficher les informations dans le chat
-                    self.add_system_message("=== INFORMATIONS DE CONNEXION ===")
-                    self.add_system_message(f"Tunnel ngrok créé avec succès!")
-                    self.add_system_message(f"Les participants peuvent se connecter avec:")
-                    self.add_system_message(f"Adresse: {ngrok_host}")
-                    self.add_system_message(f"Port: {ngrok_port}")
-                    
-                    # Afficher une fenêtre avec le QR code
-                    self.show_qr_code_window(ngrok_host, ngrok_port)
-                else:
-                    messagebox.showerror(
-                        "Erreur ngrok", 
-                        "Impossible de créer le tunnel ngrok. Vérifiez votre connexion Internet et votre token."
-                    )
-                    # Revenir au mode local en cas d'échec
-                    self.configure_local_mode()
+                # Afficher une fenêtre avec le QR code
+                self.show_qr_code_window(ngrok_host, ngrok_port)
             else:
-                # L'utilisateur a annulé, revenir au mode local
+                messagebox.showerror(
+                    "Erreur ngrok", 
+                    "Impossible de créer le tunnel ngrok. Vérifiez votre connexion Internet et votre token."
+                )
+                # Revenir au mode local en cas d'échec
                 self.configure_local_mode()
         else:
-            # L'utilisateur ne veut pas utiliser ngrok, configurer en mode local
+            # L'utilisateur a annulé, revenir au mode local
             self.configure_local_mode()
             
     def configure_local_mode(self):
@@ -1098,6 +1157,11 @@ class WatchPartyApp:
         self.update_ui_connection_state(False)
         self.status_var.set("Déconnecté")
         self.add_system_message("Déconnecté du serveur")
+        
+        # Réactiver les champs de configuration
+        self.server_addr_entry.config(state=tk.NORMAL)
+        self.server_port_entry.config(state=tk.NORMAL)
+        self.username_entry.config(state=tk.NORMAL)
         
     def update_ui_connection_state(self, connected):
         """Met à jour l'état de l'interface en fonction de la connexion"""
@@ -1307,21 +1371,24 @@ def run_integration_test():
     
     # Démarrer une instance serveur dans un thread séparé
     def start_server():
+        server_root
+# Démarrer une instance serveur dans un thread séparé
+    def start_server():
         server_root = tk.Tk()
         server_root.title("HOST - Watch Party")
         server_app = WatchPartyApp(server_root)
         
-        # Simule le démarrage du serveur après 1 seconde
-        server_root.after(1000, lambda: server_app.start_as_host())
+        # Simuler le démarrage du serveur après 1 seconde
+        server_root.after(1000, lambda: server_app.show_host_dialog())
         
-        # Simule le réglage d'une vidéo test après 3 secondes
+        # Simuler le réglage d'une vidéo test après 3 secondes
         server_root.after(3000, lambda: server_app.video_url.set("https://www.youtube.com/watch?v=jNQXAC9IVRw"))
         server_root.after(3500, lambda: server_app.set_video())
         
-        # Simule la lecture après 5 secondes
+        # Simuler la lecture après 5 secondes
         server_root.after(5000, lambda: server_app.play_video())
         
-        # Synchronise tous les clients toutes les 10 secondes
+        # Synchroniser tous les clients toutes les 10 secondes
         def periodic_sync():
             if server_app.client and server_app.is_host:
                 server_app.sync_video()
@@ -1340,8 +1407,8 @@ def run_integration_test():
         client_root.title("CLIENT - Watch Party")
         client_app = WatchPartyApp(client_root)
         
-        # Simule la connexion au serveur après 1 seconde
-        client_root.after(1000, lambda: client_app.start_as_client())
+        # Simuler la connexion au serveur après 1 seconde
+        client_root.after(1000, lambda: client_app.show_client_dialog())
         
         client_root.mainloop()
     

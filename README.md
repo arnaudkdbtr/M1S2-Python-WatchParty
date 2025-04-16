@@ -28,7 +28,9 @@ Watch Party Synchronisée est une application développée exclusivement en Pyth
 1) L’hôte lance watchparty.py et clique sur Utilisation Hôte
 
 2) Il choisit s’il souhaite :
+   
 -➕ Utiliser une connexion locale
+
 -🌐 Ou activer Ngrok pour une connexion à distance (serveur en ligne). Une clé Ngrok par défaut est proposée (modifiable si l’utilisateur a la sienne)
 
 3) Une fois la clé saisie, un serveur distant est lancé automatiquement, avec une adresse publique (host + port)

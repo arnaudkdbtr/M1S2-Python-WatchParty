@@ -21,7 +21,7 @@ pip install pyperclip pillow
 ```
 
 ⚠️ Important : L’application utilise Selenium, qui nécessite Chromedriver. Assurez-vous que :
-- chromedriver est installé sur votre système et est compatible avec votre version de Google Chrome.
+- chromedriver est installé sur votre système et est compatible avec votre version de Google Chrome. (La version utilisé par les auteurs du programme est disponible au téléchargement [ici](chromedriver.exe)
 
 ## 🚀 Fonctionnalités principales
 

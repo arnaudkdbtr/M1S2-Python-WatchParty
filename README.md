@@ -70,11 +70,7 @@ Watch Party Synchronisée est une application développée exclusivement en Pyth
 
 🔹 Projet 100 % Python
 
-🔹 Aucun HTML/CSS
-
-🔹 Interface actuelle en ligne de commande (future via tkinter)
-
-🔹 Compatible avec Windows, macOS et Linux (avec chromedriver installé)
+🔹 Aucun HTML/CSS car hors du programme du cours
 
 ## Auteurs
 

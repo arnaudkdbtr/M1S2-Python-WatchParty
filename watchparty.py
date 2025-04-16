@@ -1,8 +1,7 @@
 #Installer dans le terminal au préalable
-#pip install pyperclip qrcode pillow
+#pip install pyperclip pillow
 #pip install selenium
 #pip install pyngrok requests
-
 import socket
 import threading
 import json
@@ -23,8 +22,6 @@ import sys
 from urllib.parse import urlparse, parse_qs
 from pyngrok import ngrok, conf
 import requests
-import qrcode
-from PIL import Image, ImageTk
 import io
 
 # Configuration du logging
@@ -34,6 +31,34 @@ logger = logging.getLogger(__name__)
 # Constantes
 PORT = 5555
 BUFFER_SIZE = 4096
+
+# Thèmes pour le mode clair et sombre
+THEMES = {
+    "light": {
+        "bg": "#f0f0f0",
+        "fg": "#000000",
+        "frame_bg": "#e0e0e0",
+        "button_bg": "#d0d0d0",
+        "entry_bg": "#ffffff",
+        "chat_bg": "#ffffff",
+        "chat_fg": "#000000",
+        "chat_system_fg": "#0000AA",
+        "chat_highlight_bg": "#e6e6e6",
+        "status_bg": "#d9d9d9"
+    },
+    "dark": {
+        "bg": "#1e1e1e",
+        "fg": "#ffffff",
+        "frame_bg": "#2d2d2d",
+        "button_bg": "#3d3d3d",
+        "entry_bg": "#3d3d3d",
+        "chat_bg": "#2d2d2d",
+        "chat_fg": "#e0e0e0",
+        "chat_system_fg": "#8cb4ff",
+        "chat_highlight_bg": "#3d3d3d",
+        "status_bg": "#333333"
+    }
+}
 
 class YouTubeController:
     """Classe pour contrôler le navigateur YouTube via Selenium"""
@@ -685,16 +710,20 @@ class WatchPartyApp:
         self.username = tk.StringVar(value="User" + str(int(time.time()) % 1000))
         self.video_url = tk.StringVar(value="https://www.youtube.com/watch?v=jNQXAC9IVRw")  # Vidéo test par défaut
         
+        # Thème actuel (par défaut: clair)
+        self.current_theme = "light"
+        
         # Configuration de l'interface
         self.setup_ui()
         
     def setup_ui(self):
         """Configure l'interface utilisateur"""
+        # Configurer le thème initial
+        self.apply_theme()
+        
         # Style
-        style = ttk.Style()
-        style.configure("TButton", padding=6)
-        style.configure("TLabel", padding=3)
-        style.configure("TFrame", padding=5)
+        self.style = ttk.Style()
+        self.update_style()
         
         # Cadre principal
         main_frame = ttk.Frame(self.master)
@@ -704,7 +733,7 @@ class WatchPartyApp:
         config_frame = ttk.LabelFrame(main_frame, text="Configuration")
         config_frame.pack(fill=tk.X, padx=5, pady=5)
         
-        # Ligne 1: Mode (Hôte/Client)
+        # Ligne 1: Mode (Hôte/Client) et thème
         mode_frame = ttk.Frame(config_frame)
         mode_frame.pack(fill=tk.X, padx=5, pady=5)
         
@@ -716,23 +745,27 @@ class WatchPartyApp:
         self.client_button = ttk.Button(mode_frame, text="Rejoindre comme Client", command=self.show_client_dialog)
         self.client_button.pack(side=tk.LEFT, padx=5)
         
+        # Bouton pour changer de thème
+        self.theme_button = ttk.Button(mode_frame, text="Mode Sombre", command=self.toggle_theme)
+        self.theme_button.pack(side=tk.RIGHT, padx=5)
+        
         # Ligne 2: Configuration réseau
         network_frame = ttk.Frame(config_frame)
         network_frame.pack(fill=tk.X, padx=5, pady=5)
         
         ttk.Label(network_frame, text="Adresse serveur:").pack(side=tk.LEFT, padx=5)
-        self.server_addr_entry = ttk.Entry(network_frame, textvariable=self.server_addr, width=15)
+        self.server_addr_entry = tk.Entry(network_frame, textvariable=self.server_addr, width=15)
         self.server_addr_entry.pack(side=tk.LEFT, padx=5)
         
         ttk.Label(network_frame, text="Port:").pack(side=tk.LEFT, padx=5)
-        self.server_port_entry = ttk.Entry(network_frame, textvariable=self.server_port, width=6)
+        self.server_port_entry = tk.Entry(network_frame, textvariable=self.server_port, width=6)
         self.server_port_entry.pack(side=tk.LEFT, padx=5)
         
         ttk.Label(network_frame, text="Nom d'utilisateur:").pack(side=tk.LEFT, padx=5)
-        self.username_entry = ttk.Entry(network_frame, textvariable=self.username, width=15)
+        self.username_entry = tk.Entry(network_frame, textvariable=self.username, width=15)
         self.username_entry.pack(side=tk.LEFT, padx=5)
         
-        # Section vidéo
+# Section vidéo
         video_frame = ttk.LabelFrame(main_frame, text="Contrôle vidéo")
         video_frame.pack(fill=tk.X, padx=5, pady=5)
         
@@ -741,7 +774,8 @@ class WatchPartyApp:
         url_frame.pack(fill=tk.X, padx=5, pady=5)
         
         ttk.Label(url_frame, text="URL YouTube:").pack(side=tk.LEFT, padx=5)
-        ttk.Entry(url_frame, textvariable=self.video_url, width=50).pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
+        self.video_url_entry = tk.Entry(url_frame, textvariable=self.video_url, width=50)
+        self.video_url_entry.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
         
         self.set_video_button = ttk.Button(url_frame, text="Définir Vidéo", command=self.set_video, state=tk.DISABLED)
         self.set_video_button.pack(side=tk.LEFT, padx=5)
@@ -759,7 +793,7 @@ class WatchPartyApp:
         ttk.Label(control_frame, text="Aller à (sec):").pack(side=tk.LEFT, padx=5)
         
         self.seek_var = tk.StringVar()
-        self.seek_entry = ttk.Entry(control_frame, textvariable=self.seek_var, width=6, state=tk.DISABLED)
+        self.seek_entry = tk.Entry(control_frame, textvariable=self.seek_var, width=6, state=tk.DISABLED)
         self.seek_entry.pack(side=tk.LEFT, padx=5)
         
         self.seek_button = ttk.Button(control_frame, text="Aller", command=self.seek_video, state=tk.DISABLED)
@@ -784,7 +818,7 @@ class WatchPartyApp:
         input_frame = ttk.Frame(chat_frame)
         input_frame.pack(fill=tk.X, padx=5, pady=5)
         
-        self.chat_input = ttk.Entry(input_frame, width=50, state=tk.DISABLED)
+        self.chat_input = tk.Entry(input_frame, width=50, state=tk.DISABLED)
         self.chat_input.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5)
         self.chat_input.bind("<Return>", self.send_chat_message)
         
@@ -793,12 +827,50 @@ class WatchPartyApp:
         
         # Barre d'état en bas
         self.status_var = tk.StringVar(value="En attente de connexion...")
-        status_bar = ttk.Label(self.master, textvariable=self.status_var, relief=tk.SUNKEN, anchor=tk.W)
-        status_bar.pack(side=tk.BOTTOM, fill=tk.X)
+        self.status_bar = ttk.Label(self.master, textvariable=self.status_var, relief=tk.SUNKEN, anchor=tk.W)
+        self.status_bar.pack(side=tk.BOTTOM, fill=tk.X)
         
         # Gestion de la fermeture de l'application
         self.master.protocol("WM_DELETE_WINDOW", self.on_closing)
-    
+
+    def apply_theme(self):
+        """Applique le thème actuel à la fenêtre principale"""
+        theme = THEMES[self.current_theme]
+        self.master.configure(bg=theme["bg"])
+        
+    def update_style(self):
+        """Met à jour le style des widgets ttk selon le thème actuel"""
+        theme = THEMES[self.current_theme]
+        
+        # Configuration du style ttk
+        self.style.configure("TFrame", background=theme["frame_bg"])
+        self.style.configure("TLabel", background=theme["frame_bg"], foreground=theme["fg"])
+        self.style.configure("TButton", background=theme["button_bg"])
+        self.style.configure("TEntry", fieldbackground=theme["entry_bg"], foreground=theme["fg"])
+        self.style.configure("TLabelframe", background=theme["frame_bg"], foreground=theme["fg"])
+        self.style.configure("TLabelframe.Label", background=theme["frame_bg"], foreground=theme["fg"])
+        
+        # Configurer les widgets existants
+        if hasattr(self, 'chat_text'):
+            self.chat_text.configure(bg=theme["chat_bg"], fg=theme["chat_fg"], insertbackground=theme["fg"])
+            
+        if hasattr(self, 'status_bar'):
+            self.status_bar.configure(background=theme["status_bg"], foreground=theme["fg"])
+            
+    def toggle_theme(self):
+        """Bascule entre le thème clair et sombre"""
+        self.current_theme = "dark" if self.current_theme == "light" else "light"
+        
+        # Mettre à jour le texte du bouton
+        self.theme_button.configure(text="Mode Clair" if self.current_theme == "dark" else "Mode Sombre")
+        
+        # Appliquer le nouveau thème
+        self.apply_theme()
+        self.update_style()
+        
+        # Forcer la mise à jour de tous les widgets
+        self.master.update_idletasks()
+        
     def show_host_dialog(self):
         """Affiche la boîte de dialogue pour le mode hôte"""
         # Demander le nom d'utilisateur
@@ -929,6 +1001,10 @@ class WatchPartyApp:
         token_dialog.transient(self.master)
         token_dialog.grab_set()
         
+        # Appliquer le thème actuel
+        theme = THEMES[self.current_theme]
+        token_dialog.configure(bg=theme["bg"])
+        
         # Centrer la fenêtre
         token_dialog.update_idletasks()
         x = (token_dialog.winfo_screenwidth() - token_dialog.winfo_width()) // 2
@@ -946,7 +1022,7 @@ class WatchPartyApp:
         ttk.Label(frame, text="Un token par défaut est fourni, mais vous pouvez en utiliser un autre.", 
                  font=("Arial", 10)).pack(pady=2)
         
-        token_entry = ttk.Entry(frame, textvariable=token_var, width=50)
+        token_entry = tk.Entry(frame, textvariable=token_var, width=50)
         token_entry.pack(pady=10, fill=tk.X)
         
         # Variable pour stocker le résultat
@@ -984,8 +1060,8 @@ class WatchPartyApp:
                 self.add_system_message(f"Adresse: {ngrok_host}")
                 self.add_system_message(f"Port: {ngrok_port}")
                 
-                # Afficher une fenêtre avec le QR code
-                self.show_qr_code_window(ngrok_host, ngrok_port)
+                # Afficher une fenêtre avec les informations de connexion
+                self.show_connection_info_window(ngrok_host, ngrok_port)
             else:
                 messagebox.showerror(
                     "Erreur ngrok", 
@@ -1010,16 +1086,21 @@ class WatchPartyApp:
         self.add_system_message(f"Port: {PORT}")
         
         # Afficher une fenêtre avec les informations locales
-        self.show_local_info_window(local_ip, PORT)
+        self.show_connection_info_window(local_ip, PORT)
             
-    def show_qr_code_window(self, host, port):
-        """Affiche une fenêtre avec le QR code des informations de connexion"""
-        qr_window = tk.Toplevel(self.master)
-        qr_window.title("Informations de connexion")
-        qr_window.geometry("400x500")
+    def show_connection_info_window(self, host, port):
+        """Affiche une fenêtre avec les informations de connexion"""
+        info_window = tk.Toplevel(self.master)
+        info_window.title("Informations de connexion")
+        info_window.geometry("400x300")
+        info_window.resizable(False, False)
         
-        # Frame contenant les informations et le QR code
-        frame = ttk.Frame(qr_window, padding=10)
+        # Appliquer le thème actuel
+        theme = THEMES[self.current_theme]
+        info_window.configure(bg=theme["bg"])
+        
+        # Frame contenant les informations
+        frame = ttk.Frame(info_window, padding=10)
         frame.pack(fill=tk.BOTH, expand=True)
         
         # Informations textuelles
@@ -1027,59 +1108,16 @@ class WatchPartyApp:
         ttk.Label(frame, text=f"Adresse: {host}", font=("Arial", 11)).pack(pady=2)
         ttk.Label(frame, text=f"Port: {port}", font=("Arial", 11)).pack(pady=2)
         
-        # QR Code
-        ttk.Label(frame, text="Ou scannez ce QR code:", font=("Arial", 11)).pack(pady=10)
-        
-        qr_img_data = generate_qr_code(host, port)
-        if qr_img_data:
-            pil_img = Image.open(qr_img_data)
-            tk_img = ImageTk.PhotoImage(pil_img)
-            
-            qr_label = ttk.Label(frame, image=tk_img)
-            qr_label.image = tk_img  # Garder une référence pour éviter le garbage collector
-            qr_label.pack(pady=10)
-        
         # Instructions supplémentaires
-        ttk.Label(frame, text="Note: Le tunnel ngrok sera actif pendant 2 heures maximum.", 
-                 font=("Arial", 10), foreground="gray").pack(pady=5)
-        
-        # Bouton pour copier les informations dans le presse-papier
-        def copy_to_clipboard():
-            qr_window.clipboard_clear()
-            qr_window.clipboard_append(f"Adresse: {host}\nPort: {port}")
-            messagebox.showinfo("Information", "Informations de connexion copiées dans le presse-papier")
-        
-        ttk.Button(frame, text="Copier les infos", command=copy_to_clipboard).pack(pady=10)
-        
-        # Centrer la fenêtre
-        qr_window.update_idletasks()
-        width = qr_window.winfo_width()
-        height = qr_window.winfo_height()
-        x = (qr_window.winfo_screenwidth() // 2) - (width // 2)
-        y = (qr_window.winfo_screenheight() // 2) - (height // 2)
-        qr_window.geometry(f"{width}x{height}+{x}+{y}")
-        
-    def show_local_info_window(self, host, port):
-        """Affiche une fenêtre avec les informations de connexion locale"""
-        info_window = tk.Toplevel(self.master)
-        info_window.title("Informations de connexion locale")
-        info_window.geometry("400x300")
-        
-        # Frame contenant les informations
-        frame = ttk.Frame(info_window, padding=10)
-        frame.pack(fill=tk.BOTH, expand=True)
-        
-        # Informations textuelles
-        ttk.Label(frame, text="Pour rejoindre cette session en local:", font=("Arial", 12, "bold")).pack(pady=5)
-        ttk.Label(frame, text=f"Adresse: {host}", font=("Arial", 11)).pack(pady=2)
-        ttk.Label(frame, text=f"Port: {port}", font=("Arial", 11)).pack(pady=2)
-        
-        # Instructions supplémentaires
-        ttk.Label(frame, text="IMPORTANT:", font=("Arial", 11, "bold")).pack(pady=10)
-        ttk.Label(frame, text="Seuls les participants connectés à votre réseau local\npourront rejoindre cette session.", 
-                 font=("Arial", 10)).pack(pady=2)
-        ttk.Label(frame, text="Pour permettre l'accès depuis Internet, redémarrez\nl'application et activez l'accès distant avec ngrok.", 
-                 font=("Arial", 10)).pack(pady=5)
+        if "ngrok" in host:
+            ttk.Label(frame, text="Note: Le tunnel ngrok sera actif pendant 2 heures maximum.", 
+                     font=("Arial", 10), foreground=theme["chat_system_fg"]).pack(pady=5)
+        else:
+            ttk.Label(frame, text="IMPORTANT:", font=("Arial", 11, "bold")).pack(pady=10)
+            ttk.Label(frame, text="Seuls les participants connectés à votre réseau local\npourront rejoindre cette session.", 
+                     font=("Arial", 10)).pack(pady=2)
+            ttk.Label(frame, text="Pour permettre l'accès depuis Internet, redémarrez\nl'application et activez l'accès distant avec ngrok.", 
+                     font=("Arial", 10)).pack(pady=5)
         
         # Bouton pour copier les informations dans le presse-papier
         def copy_to_clipboard():
@@ -1277,15 +1315,25 @@ class WatchPartyApp:
             
     def handle_chat_message(self, username, content):
         """Gère un message de chat reçu"""
+        theme = THEMES[self.current_theme]
+        
         self.chat_text.config(state=tk.NORMAL)
-        self.chat_text.insert(tk.END, f"{username}: {content}\n")
+        self.chat_text.tag_configure("username", foreground=theme["chat_fg"], font=("Arial", 10, "bold"))
+        self.chat_text.tag_configure("content", foreground=theme["chat_fg"])
+        
+        self.chat_text.insert(tk.END, f"{username}: ", "username")
+        self.chat_text.insert(tk.END, f"{content}\n", "content")
         self.chat_text.see(tk.END)
         self.chat_text.config(state=tk.DISABLED)
         
     def add_system_message(self, message):
         """Ajoute un message système dans le chat"""
+        theme = THEMES[self.current_theme]
+        
         self.chat_text.config(state=tk.NORMAL)
-        self.chat_text.insert(tk.END, f"[Système] {message}\n")
+        self.chat_text.tag_configure("system", foreground=theme["chat_system_fg"], font=("Arial", 9, "italic"))
+        
+        self.chat_text.insert(tk.END, f"[Système] {message}\n", "system")
         self.chat_text.see(tk.END)
         self.chat_text.config(state=tk.DISABLED)
         
@@ -1317,35 +1365,6 @@ def setup_ngrok(auth_token):
         logger.error(f"Erreur lors de la configuration de ngrok: {e}")
         return None, None
 
-def generate_qr_code(host, port):
-    """Génère un QR code avec les informations de connexion"""
-    try:
-        # Créer le contenu du QR code (format simple pour être facilement parsé)
-        connection_info = f"watchparty://{host}:{port}"
-        
-        # Générer le QR code
-        qr = qrcode.QRCode(
-            version=1,
-            error_correction=qrcode.constants.ERROR_CORRECT_L,
-            box_size=10,
-            border=4,
-        )
-        qr.add_data(connection_info)
-        qr.make(fit=True)
-        
-        # Créer une image du QR code
-        img = qr.make_image(fill_color="black", back_color="white")
-        
-        # Convertir l'image en format pour Tkinter
-        img_byte_arr = io.BytesIO()
-        img.save(img_byte_arr, format='PNG')
-        img_byte_arr.seek(0)
-        
-        return img_byte_arr
-    except Exception as e:
-        logger.error(f"Erreur lors de la génération du QR code: {e}")
-        return None
-
 def get_public_ip():
     """Obtient l'adresse IP publique de l'utilisateur"""
     try:
@@ -1370,9 +1389,6 @@ def run_integration_test():
     import time
     
     # Démarrer une instance serveur dans un thread séparé
-    def start_server():
-        server_root
-# Démarrer une instance serveur dans un thread séparé
     def start_server():
         server_root = tk.Tk()
         server_root.title("HOST - Watch Party")

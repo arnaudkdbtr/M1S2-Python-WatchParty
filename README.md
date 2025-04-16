@@ -1,4 +1,4 @@
-#🎬 Watch Party Synchronisée (100 % Python)
+# 🎬 Watch Party Synchronisée (100 % Python)
 
 ## 📌 Présentation du Projet
 
@@ -18,31 +18,30 @@ Watch Party Synchronisée est une application développée exclusivement en Pyth
 ## 🖥️ Fonctionnement
 ### 🎬 Côté hôte : 
 
-L’hôte lance watchparty.py et clique sur Utilisation Hôte
+1) L’hôte lance watchparty.py et clique sur Utilisation Hôte
 
-Il choisit s’il souhaite :
+2) Il choisit s’il souhaite :
 -➕ Utiliser une connexion locale
 -🌐 Ou activer Ngrok pour une connexion à distance (serveur en ligne). Une clé Ngrok par défaut est proposée (modifiable si l’utilisateur a la sienne)
 
-Une fois la clé saisie, un serveur distant est lancé automatiquement, avec une adresse publique (host + port)
+3) Une fois la clé saisie, un serveur distant est lancé automatiquement, avec une adresse publique (host + port)
 
-L’hôte entre l’URL YouTube à visionner
+4) L’hôte entre l’URL YouTube à visionner
 
-Le serveur est prêt, les clients peuvent rejoindre.
+5) Le serveur est prêt, les clients peuvent rejoindre.
 
 ### 🎬 Côté client : 
 
-Le client lance également watchparty.py
+1) Le client lance également watchparty.py
 
-Il choisit le mode client
+2) Il choisit le mode client
 
-Il entre :
-
+3) Il entre :
 - L’adresse et le port du serveur (fournis par l’hôte)
 
-Le navigateur s’ouvre automatiquement avec la vidéo de l’hôte
+4) Le navigateur s’ouvre automatiquement avec la vidéo de l’hôte
 
-Toutes les commandes de lecture sont reçues et exécutées en temps réel
+5) Toutes les commandes de lecture sont reçues et exécutées en temps réel
 
 ## 🧩 Fonctionnalités futures envisagées
 

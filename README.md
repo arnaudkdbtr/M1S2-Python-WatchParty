@@ -95,6 +95,7 @@ pip install pyperclip pillow
 
 ## ⚠️ Contraintes
 🔹 Projet 100 % Python
+
 🔹 Aucun HTML/CSS car hors du programme du cours
 
 ## Auteurs

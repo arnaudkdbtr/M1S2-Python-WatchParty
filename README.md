@@ -26,6 +26,9 @@ pip install pyperclip pillow
 ## 🚀 Fonctionnalités principales
 
 -📺 Lecture synchronisée de vidéos YouTube
+Lecture/pause synchronisée entre tous les participants
+Navigation temporelle (seek) instantanément partagée
+Prise en charge des formats d'URL YouTube standard
 
 -🎮 Contrôle centralisé par l’hôte (lecture, pause, seek)
 

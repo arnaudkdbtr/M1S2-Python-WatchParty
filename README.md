@@ -29,6 +29,7 @@ pip install pyperclip pillow
   - Lecture/pause synchronisée entre tous les participants
   - Navigation temporelle (seek) instantanément partagée
   - Prise en charge des formats d'URL YouTube standard
+  - Correction automatique de désynchronisation (écarts > 1s)
 
 - 🎮 **Interface utilisateur intuitive**
   - Mode clair / Mode sombre personnalisable

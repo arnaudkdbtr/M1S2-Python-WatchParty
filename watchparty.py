@@ -1,7 +1,9 @@
 #Installer dans le terminal au préalable
+
 #pip install pyperclip pillow
 #pip install selenium
 #pip install pyngrok requests
+
 import socket
 import threading
 import json
@@ -227,6 +229,10 @@ class Server:
         self.current_video_url = None
         self.current_video_state = {"playing": False, "time": 0.0}
         self.lock = threading.Lock()
+        # Nouveau: pour suivre le temps de lecture de chaque client
+        self.client_positions = {}  # {client_addr: {"time": seconds, "timestamp": server_time}}
+        self.host_client = None  # Référence au socket du client hôte
+        self.sync_threshold = 1.0  # Seuil de désynchronisation en secondes
         
     def start(self):
         """Démarre le serveur"""
@@ -304,6 +310,53 @@ class Server:
         except:
             pass
         logger.info(f"Client {addr[0]}:{addr[1]} déconnecté")
+    
+    def check_sync_status(self, client_addr, position):
+        """Vérifie si un client est désynchronisé et envoie une correction si nécessaire"""
+        with self.lock:
+            # Stocker la position du client avec un horodatage
+            self.client_positions[client_addr] = {
+                "time": position,
+                "timestamp": time.time()
+            }
+            
+            # Si c'est l'hôte, mettre à jour l'état courant
+            if self.host_client and tuple(client_addr) == self.host_client.getpeername():
+                self.current_video_state["time"] = position
+                
+                # Vérifier la synchronisation de tous les clients
+                current_host_position = position
+                clients_to_sync = []
+                
+                for client_socket in self.clients:
+                    try:
+                        client_addr_tuple = client_socket.getpeername()
+                        # Ne pas vérifier l'hôte lui-même
+                        if client_socket == self.host_client:
+                            continue
+                            
+                        # Récupérer la position du client s'il existe
+                        client_data = self.client_positions.get(client_addr_tuple)
+                        if client_data:
+                            client_position = client_data["time"]
+                            time_diff = abs(current_host_position - client_position)
+                            
+                            # Si le décalage est supérieur au seuil, ajouter à la liste à synchroniser
+                            if time_diff > self.sync_threshold:
+                                clients_to_sync.append(client_socket)
+                    except:
+                        continue
+                
+                # Envoyer des commandes de synchronisation aux clients désynchronisés
+                for client_socket in clients_to_sync:
+                    try:
+                        self.send_to_client(client_socket, {
+                            "type": "auto_sync",
+                            "time": current_host_position
+                        })
+                        logger.info(f"Correction automatique envoyée au client {client_socket.getpeername()}")
+                    except:
+                        pass
         
     def process_message(self, message, sender_socket=None):
         """Traite un message reçu d'un client"""
@@ -416,6 +469,25 @@ class Server:
                     "username": username,
                     "content": content
                 })
+                
+        elif msg_type == "report_position":
+            # Un client envoie sa position actuelle
+            position = message.get("time", 0)
+            is_playing = message.get("playing", False)
+            
+            try:
+                if sender_socket:
+                    client_addr = sender_socket.getpeername()
+                    # Enregistrer la position du client et vérifier la synchronisation
+                    self.check_sync_status(client_addr, position)
+                    
+                    # Si c'est l'hôte qui envoie sa position, identifier ce socket comme l'hôte
+                    if message.get("is_host", False):
+                        self.host_client = sender_socket
+                        # Mettre à jour l'état de lecture
+                        self.current_video_state["playing"] = is_playing
+            except Exception as e:
+                logger.error(f"Erreur lors du traitement d'un rapport de position: {e}")
     
     def broadcast(self, message):
         """Envoie un message à tous les clients connectés"""
@@ -477,6 +549,9 @@ class Client:
         self.message_handlers = {}
         self.last_sync_time = 0
         self.is_host = False  # Indique si ce client est l'hôte
+        # Attributs pour la correction automatique de désynchronisation
+        self.position_report_interval = 5  # Intervalle de rapport en secondes
+        self.last_position_report = 0
         
     def connect(self):
         """Se connecte au serveur"""
@@ -593,6 +668,13 @@ class Client:
             handler = self.message_handlers.get("chat")
             if handler:
                 handler(username, content)
+                
+        elif msg_type == "auto_sync":
+            # Commande de synchronisation automatique
+            if self.youtube_controller.is_initialized and not self.is_host:
+                time_pos = message.get("time", 0)
+                logger.info(f"Correction automatique reçue: alignement à {time_pos} secondes")
+                self.youtube_controller.seek(time_pos)
         
         # Appeler le gestionnaire générique si enregistré
         handler = self.message_handlers.get("message")
@@ -674,6 +756,33 @@ class Client:
             })
         except Exception as e:
             logger.error(f"Erreur lors de la synchronisation forcée: {e}")
+            return False
+            
+    def report_position(self):
+        """Envoie la position actuelle au serveur pour la détection de désynchronisation"""
+        if not self.connected or not self.youtube_controller.is_initialized:
+            return False
+            
+        current_time = time.time()
+        # Limiter la fréquence des rapports
+        if current_time - self.last_position_report < self.position_report_interval:
+            return False
+            
+        try:
+            # Obtenir la position actuelle
+            position = self.youtube_controller.get_current_time()
+            is_playing = self.youtube_controller.is_playing()
+            
+            # Envoyer la position au serveur
+            self.last_position_report = current_time
+            return self.send_message({
+                "type": "report_position",
+                "time": position,
+                "playing": is_playing,
+                "is_host": self.is_host  # Indiquer si ce client est l'hôte
+            })
+        except Exception as e:
+            logger.error(f"Erreur lors du rapport de position: {e}")
             return False
         
     def disconnect(self):
@@ -802,6 +911,33 @@ class WatchPartyApp:
         self.sync_button = ttk.Button(control_frame, text="⟳ Synchroniser", command=self.sync_video, state=tk.DISABLED)
         self.sync_button.pack(side=tk.LEFT, padx=5)
         
+        # Ligne 3: Options de synchronisation automatique
+        sync_options_frame = ttk.Frame(video_frame)
+        sync_options_frame.pack(fill=tk.X, padx=5, pady=5)
+        
+        self.auto_sync_var = tk.BooleanVar(value=True)
+        self.auto_sync_check = ttk.Checkbutton(
+            sync_options_frame, 
+            text="Correction automatique de désynchronisation", 
+            variable=self.auto_sync_var,
+            command=self.toggle_auto_sync
+        )
+        self.auto_sync_check.pack(side=tk.LEFT, padx=5)
+        
+        # Entrée pour le seuil de synchronisation
+        ttk.Label(sync_options_frame, text="Seuil (sec):").pack(side=tk.LEFT, padx=5)
+        self.sync_threshold_var = tk.StringVar(value="1.0")
+        self.sync_threshold_entry = tk.Entry(sync_options_frame, textvariable=self.sync_threshold_var, width=4)
+        self.sync_threshold_entry.pack(side=tk.LEFT, padx=5)
+        
+        # Bouton pour appliquer le seuil
+        self.apply_threshold_button = ttk.Button(
+            sync_options_frame, 
+            text="Appliquer", 
+            command=self.apply_sync_threshold
+        )
+        self.apply_threshold_button.pack(side=tk.LEFT, padx=5)
+        
         # Section chat
         chat_frame = ttk.LabelFrame(main_frame, text="Chat")
         chat_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
@@ -832,6 +968,49 @@ class WatchPartyApp:
         
         # Gestion de la fermeture de l'application
         self.master.protocol("WM_DELETE_WINDOW", self.on_closing)
+
+    def toggle_auto_sync(self):
+        """Active ou désactive la synchronisation automatique"""
+        if self.client:
+            enabled = self.auto_sync_var.get()
+            
+            if enabled:
+                # Activer le rapport périodique de position
+                if not hasattr(self, 'sync_timer') or not self.sync_timer:
+                    self.start_position_reporting()
+                self.add_system_message("Correction automatique de désynchronisation activée")
+            else:
+                # Désactiver le rapport périodique
+                if hasattr(self, 'sync_timer') and self.sync_timer:
+                    self.master.after_cancel(self.sync_timer)
+                    self.sync_timer = None
+                self.add_system_message("Correction automatique de désynchronisation désactivée")
+    
+    def apply_sync_threshold(self):
+        """Applique le nouveau seuil de synchronisation"""
+        if not self.client or not self.is_host:
+            return
+            
+        try:
+            threshold = float(self.sync_threshold_var.get())
+            if threshold <= 0:
+                raise ValueError("Le seuil doit être positif")
+                
+            # Envoyer le seuil au serveur
+            if self.server:
+                self.server.sync_threshold = threshold
+                self.add_system_message(f"Seuil de synchronisation défini à {threshold} secondes")
+        except ValueError:
+            messagebox.showerror("Erreur", "Veuillez entrer un nombre positif valide")
+    
+    def start_position_reporting(self):
+        """Démarre le rapport périodique de position"""
+        if self.client and self.auto_sync_var.get():
+            # Envoyer un rapport de position
+            self.client.report_position()
+            
+            # Planifier le prochain rapport
+            self.sync_timer = self.master.after(1000, self.start_position_reporting)
 
     def apply_theme(self):
         """Applique le thème actuel à la fenêtre principale"""
@@ -949,6 +1128,15 @@ class WatchPartyApp:
             
             # Créer et démarrer le serveur
             self.server = Server(port=port)
+            
+            # Initialiser le seuil de synchronisation
+            try:
+                threshold = float(self.sync_threshold_var.get())
+                if threshold > 0:
+                    self.server.sync_threshold = threshold
+            except:
+                pass
+            
             if not self.server.start():
                 messagebox.showerror("Erreur", "Impossible de démarrer le serveur")
                 self.server = None
@@ -977,6 +1165,10 @@ class WatchPartyApp:
             # Ajouter un message dans le chat
             self.add_system_message(f"Serveur démarré sur le port {port}")
             self.add_system_message(f"Connecté en tant qu'hôte : {self.client.username}")
+            
+            # Démarrer le rapport de position si la synchronisation auto est activée
+            if self.auto_sync_var.get():
+                self.start_position_reporting()
             
             # Configurer ngrok si demandé
             if use_ngrok:
@@ -1134,7 +1326,7 @@ class WatchPartyApp:
         x = (info_window.winfo_screenwidth() // 2) - (width // 2)
         y = (info_window.winfo_screenheight() // 2) - (height // 2)
         info_window.geometry(f"{width}x{height}+{x}+{y}")
-        
+            
     def start_as_client(self):
         """Démarre l'application en mode client"""
         if self.client or self.server:
@@ -1175,6 +1367,42 @@ class WatchPartyApp:
             messagebox.showerror("Erreur", f"Erreur lors de la connexion au serveur: {e}")
             self.disconnect()
             
+    def update_ui_connection_state(self, connected):
+        """Met à jour l'état de l'interface en fonction de la connexion"""
+        state = tk.NORMAL if connected else tk.DISABLED
+        host_only_state = tk.NORMAL if connected and self.is_host else tk.DISABLED
+        
+# Boutons de connexion (inversé pour les boutons de connexion)
+        self.host_button.config(state=tk.DISABLED if connected else tk.NORMAL)
+        self.client_button.config(state=tk.DISABLED if connected else tk.NORMAL)
+        
+        # Contrôles vidéo
+        self.set_video_button.config(state=host_only_state)  # Seulement l'hôte peut définir la vidéo
+        self.play_button.config(state=host_only_state)       # Seulement l'hôte peut lancer la lecture
+        self.pause_button.config(state=host_only_state)      # Seulement l'hôte peut mettre en pause
+        self.seek_entry.config(state=host_only_state)        # Seulement l'hôte peut chercher
+        self.seek_button.config(state=host_only_state)       # Seulement l'hôte peut chercher
+        self.sync_button.config(state=host_only_state)       # Seulement l'hôte peut synchroniser
+        
+        # Contrôles de synchronisation
+        self.sync_threshold_entry.config(state=host_only_state)
+        self.apply_threshold_button.config(state=host_only_state)
+        
+        # Contrôles chat
+        self.chat_input.config(state=state)
+        self.send_button.config(state=state)
+        
+        # Activer le rapport de position si connecté et synchronisation auto activée
+        if connected:
+            # Activer le rapport de position si la synchronisation auto est activée
+            if self.auto_sync_var.get():
+                self.start_position_reporting()
+        else:
+            # Arrêter le rapport de position
+            if hasattr(self, 'sync_timer') and self.sync_timer:
+                self.master.after_cancel(self.sync_timer)
+                self.sync_timer = None
+        
     def disconnect(self):
         """Déconnecte du serveur et arrête le serveur si en mode hôte"""
         if self.client:
@@ -1200,27 +1428,6 @@ class WatchPartyApp:
         self.server_addr_entry.config(state=tk.NORMAL)
         self.server_port_entry.config(state=tk.NORMAL)
         self.username_entry.config(state=tk.NORMAL)
-        
-    def update_ui_connection_state(self, connected):
-        """Met à jour l'état de l'interface en fonction de la connexion"""
-        state = tk.NORMAL if connected else tk.DISABLED
-        host_only_state = tk.NORMAL if connected and self.is_host else tk.DISABLED
-        
-        # Boutons de connexion (inversé pour les boutons de connexion)
-        self.host_button.config(state=tk.DISABLED if connected else tk.NORMAL)
-        self.client_button.config(state=tk.DISABLED if connected else tk.NORMAL)
-        
-        # Contrôles vidéo
-        self.set_video_button.config(state=host_only_state)  # Seulement l'hôte peut définir la vidéo
-        self.play_button.config(state=host_only_state)       # Seulement l'hôte peut lancer la lecture
-        self.pause_button.config(state=host_only_state)      # Seulement l'hôte peut mettre en pause
-        self.seek_entry.config(state=host_only_state)        # Seulement l'hôte peut chercher
-        self.seek_button.config(state=host_only_state)       # Seulement l'hôte peut chercher
-        self.sync_button.config(state=host_only_state)       # Seulement l'hôte peut synchroniser
-        
-        # Contrôles chat
-        self.chat_input.config(state=state)
-        self.send_button.config(state=state)
         
     def set_video(self):
         """Définit la vidéo à regarder"""

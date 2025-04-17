@@ -63,6 +63,7 @@ pip install pyperclip pillow
 4. Une fois la clé saisie, un serveur distant est lancé automatiquement, avec une adresse publique (host + port)
 5. L'hôte entre l'URL YouTube à visionner
 6. Le serveur est prêt, les clients peuvent rejoindre.
+7. Lorsque les clients sont dans la room, l'hôte clique sur "Définir vidéo" pour ouvrir le navigateur synchronisé pour tout le monde
 
 ### 👥 Côté client : 
 1. Le client lance également watchparty.py
@@ -71,9 +72,8 @@ pip install pyperclip pillow
    - L'adresse du serveur (fournie par l'hôte)
    - Le port du serveur (fourni par l'hôte)
    - Son nom d'utilisateur
-4. Le navigateur s'ouvre automatiquement avec la vidéo de l'hôte
+4. Le navigateur s'ouvre automatiquement avec la vidéo lorsque l'hôte définit une vidéo
 5. Toutes les commandes de lecture sont reçues et exécutées en temps réel
-6. La synchronisation automatique maintient tous les participants alignés
 
 ## 🧩 Fonctionnalités actuelles et en développement
 

@@ -4,9 +4,9 @@
 
 ## 📌 Présentation du Projet
 
-Watch Party Synchronisée est une application développée exclusivement en Python permettant d’organiser des soirées de visionnage de vidéos YouTube synchronisées entre plusieurs utilisateurs distants. Chaque participant voit exactement la même chose au même moment, avec des commandes centralisées comme lecture, pause ou repositionnement dans la vidéo.
+Watch Party Synchronisée est une application développée exclusivement en Python permettant d'organiser des soirées de visionnage de vidéos YouTube synchronisées entre plusieurs utilisateurs distants. Chaque participant voit exactement la même chose au même moment, avec des commandes centralisées comme lecture, pause ou repositionnement dans la vidéo.
 
-🧪 Ce projet a été réalisé dans le cadre de l’UE Technique de Programmation, un cours du second semestre du Master 1, dédié exclusivement au développement Python.
+🧪 Ce projet a été réalisé dans le cadre de l'UE Technique de Programmation, un cours du second semestre du Master 1, dédié exclusivement au développement Python.
 
 ## ✅ Prérequis
 
@@ -20,82 +20,84 @@ pip install pyngrok requests
 pip install pyperclip pillow
 ```
 
-⚠️ Important : L’application utilise Selenium, qui nécessite Chromedriver. Assurez-vous que :
+⚠️ Important : L'application utilise Selenium, qui nécessite Chromedriver. Assurez-vous que :
 - chromedriver est installé sur votre système et est compatible avec votre version de Google Chrome. (La version utilisé par les auteurs du programme est disponible dans le dépot [ici](chromedriver.exe))
 
 ## 🚀 Fonctionnalités principales
 
--📺 Lecture synchronisée de vidéos YouTube
+- 📺 **Synchronisation vidéo avancée**
+  - Lecture/pause synchronisée entre tous les participants
+  - Navigation temporelle (seek) instantanément partagée
+  - Prise en charge des formats d'URL YouTube standard
 
-Lecture/pause synchronisée entre tous les participants
+- 🎮 **Interface utilisateur intuitive**
+  - Mode clair / Mode sombre personnalisable
+  - Boutons de contrôle vidéo (lecture, pause, recherche temporelle)
+  - Zone de chat intégrée avec identification des utilisateurs
+  - Affichage des messages système (connexions, synchronisations)
 
-Navigation temporelle (seek) instantanément partagée
+- 🌐 **Connectivité réseau complète**
+  - Mode hôte pour créer une session
+  - Mode client pour rejoindre une session
+  - Fonctionnement en réseau local ou via Internet (ngrok)
+  - Affichage des informations de connexion partageables
 
-Prise en charge des formats d'URL YouTube standard
+- 💬 **Communication intégrée**
+  - Chat texte en temps réel entre participants
+  - Messages système pour événements importants
 
--🎮 Contrôle centralisé par l’hôte (lecture, pause, seek)
-
--🌐 Communication réseau via socket ou via Ngrok pour le mode en ligne
-
--🤖 Automatisation du navigateur via Selenium
-
--💬 Chat texte intégré entre les participants
-
--🧵 Multi-threading pour gérer commandes et échanges simultanés
+- 🔄 **Robustesse et fiabilité**
+  - Détection automatique des déconnexions
+  - Gestion des erreurs de synchronisation
+  - Nettoyage des ressources à la fermeture
+  - Architecture multithread pour une réactivité optimale
 
 ## 🖥️ Fonctionnement
+
 ### 🎬 Côté hôte : 
+1. L'hôte lance watchparty.py et clique sur "Démarrer comme Hôte"
+2. Il entre son nom d'utilisateur
+3. Il choisit s'il souhaite :
+   - ➕ Utiliser une connexion locale
+   - 🌐 Ou activer Ngrok pour une connexion à distance (serveur en ligne). Une clé Ngrok par défaut est proposée (modifiable si l'utilisateur a la sienne)
+4. Une fois la clé saisie, un serveur distant est lancé automatiquement, avec une adresse publique (host + port)
+5. L'hôte entre l'URL YouTube à visionner
+6. Le serveur est prêt, les clients peuvent rejoindre.
 
-1) L’hôte lance watchparty.py et clique sur Utilisation Hôte
+### 👥 Côté client : 
+1. Le client lance également watchparty.py
+2. Il clique sur "Rejoindre comme Client"
+3. Il entre :
+   - L'adresse du serveur (fournie par l'hôte)
+   - Le port du serveur (fourni par l'hôte)
+   - Son nom d'utilisateur
+4. Le navigateur s'ouvre automatiquement avec la vidéo de l'hôte
+5. Toutes les commandes de lecture sont reçues et exécutées en temps réel
+6. La synchronisation automatique maintient tous les participants alignés
 
-2) Il choisit s’il souhaite :
-   
-- ➕ Utiliser une connexion locale
+## 🧩 Fonctionnalités actuelles et en développement
 
-- 🌐 Ou activer Ngrok pour une connexion à distance (serveur en ligne). Une clé Ngrok par défaut est proposée (modifiable si l’utilisateur a la sienne)
+### ✅ Fonctionnalités implémentées
+- 🎞️ Synchronisation de vidéos YouTube
+- 🌑 Mode sombre / Mode clair
+- 💬 Chat texte intégré
+- 🔄 Synchronisation automatique des clients
+- 🌐 Accès internet via Ngrok
+- 🔑 Support de token Ngrok personnalisé
 
-3) Une fois la clé saisie, un serveur distant est lancé automatiquement, avec une adresse publique (host + port)
-
-4) L’hôte entre l’URL YouTube à visionner
-
-5) Le serveur est prêt, les clients peuvent rejoindre.
-
-### 🎬 Côté client : 
-
-1) Le client lance également watchparty.py
-
-2) Il choisit le mode client
-
-3) Il entre :
-- L’adresse et le port du serveur (fournis par l’hôte)
-
-4) Le navigateur s’ouvre automatiquement avec la vidéo de l’hôte
-
-5) Toutes les commandes de lecture sont reçues et exécutées en temps réel
-
-## 🧩 Fonctionnalités futures envisagées
-
-🗳️ Système de votes pour choisir la vidéo à regarder
-
-📃 Playlists partagées
-
-🎞️ Intégration directe du lecteur vidéo dans l’application (sans ouvrir un navigateur à part)
-
-🌐 Support d’autres plateformes (Netflix, Prime Video…)
-
-🎨 Amélioration graphique via une future interface plus soignée 
-
-🖥️ Déploiement d’un site web permettant d’utiliser l’application sans installer Python
+### 🚧 Fonctionnalités futures envisagées
+- 🗳️ Système de votes pour choisir la vidéo à regarder
+- 📃 Playlists partagées
+- 🎞️ Intégration directe du lecteur vidéo dans l'application (sans ouvrir un navigateur à part)
+- 🌐 Support d'autres plateformes (Netflix, Prime Video…)
+- 🎨 Amélioration graphique via une future interface plus soignée 
+- 🖥️ Déploiement d'un site web permettant d'utiliser l'application sans installer Python
 
 ## ⚠️ Contraintes
-
-🔹 Projet 100 % Python
-
-🔹 Aucun HTML/CSS car hors du programme du cours
+- 🔹 Projet 100 % Python
+- 🔹 Aucun HTML/CSS car hors du programme du cours
 
 ## Auteurs
-
 - 
 - 
-- 
-
+-

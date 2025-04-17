@@ -94,8 +94,8 @@ pip install pyperclip pillow
 - 🖥️ Déploiement d'un site web permettant d'utiliser l'application sans installer Python
 
 ## ⚠️ Contraintes
-- 🔹 Projet 100 % Python
-- 🔹 Aucun HTML/CSS car hors du programme du cours
+🔹 Projet 100 % Python
+🔹 Aucun HTML/CSS car hors du programme du cours
 
 ## Auteurs
 - 

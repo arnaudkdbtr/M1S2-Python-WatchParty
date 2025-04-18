@@ -1376,7 +1376,8 @@ class WatchPartyApp:
         self.host_button.config(state=tk.DISABLED if connected else tk.NORMAL)
         self.client_button.config(state=tk.DISABLED if connected else tk.NORMAL)
         
-        # Contrôles vidéo
+       # Contrôles vidéo
+        self.video_url_entry.config(state=host_only_state)  # Restriction: seulement l'hôte peut modifier l'URL
         self.set_video_button.config(state=host_only_state)  # Seulement l'hôte peut définir la vidéo
         self.play_button.config(state=host_only_state)       # Seulement l'hôte peut lancer la lecture
         self.pause_button.config(state=host_only_state)      # Seulement l'hôte peut mettre en pause

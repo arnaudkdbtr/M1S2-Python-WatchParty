@@ -1,4 +1,7 @@
-# 🎬 Watch Party (100 % Python) ![Logo de l'application](Annexes/Logo%2064x64.png)
+<h1 style="display: flex; align-items: center; gap: 10px;">
+  <img src="Annexes/Logo%2064x64.png" alt="Logo" width="40" />
+  Watch Party (100 % Python)
+</h1>
 
 🔧 Ce projet est encore en cours de développement.
 

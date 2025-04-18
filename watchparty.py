@@ -76,7 +76,7 @@ class YouTubeController:
             chrome_options = Options()
             if headless:
                 chrome_options.add_argument("--headless")
-            chrome_options.add_argument("--mute-audio")  # Option pour démarrer sans son
+            #chrome_options.add_argument("--mute-audio")  # Option pour démarrer sans son
             
             self.driver = webdriver.Chrome(options=chrome_options)
             self.is_initialized = True

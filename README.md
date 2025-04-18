@@ -7,7 +7,7 @@
 
 ## 📌 Présentation du Projet
 
-Watch Party Synchronisée est une application développée exclusivement en Python permettant d'organiser des soirées de visionnage de vidéos YouTube synchronisées entre plusieurs utilisateurs distants. Chaque participant voit exactement la même chose au même moment, avec des commandes centralisées comme lecture, pause ou repositionnement dans la vidéo.
+Watch Party est une application développée exclusivement en Python permettant d'organiser des soirées de visionnage de vidéos YouTube synchronisées entre plusieurs utilisateurs distants. Chaque participant voit exactement la même chose au même moment, avec des commandes centralisées comme lecture, pause ou repositionnement dans la vidéo.
 
 🧪 Ce projet a été réalisé dans le cadre de l'UE Technique de Programmation, un cours du second semestre du Master 1, dédié exclusivement au développement Python.
 

@@ -39,7 +39,7 @@ Le code a été organisé en différents modules pour améliorer la maintenabili
 
 ### 💾 Version complète
 
-Pour des raisons pédagogiques et de référence, la version originale non découpée du code est conservée dans le dossier Annexes/watchparty_complete.py. Cette version contient toutes les fonctionnalités dans un seul fichier et peut être utilisée comme point de départ pour comprendre l'ensemble du projet.
+Pour des raisons pédagogiques et de référence, la version originale non découpée du code est conservée dans le dossier [Annexes/watchparty_full.py](Annexes/watchparty_full.py). Cette version contient toutes les fonctionnalités dans un seul fichier et peut être utilisée comme point de départ pour comprendre l'ensemble du projet.
 
 ## 🚀 Fonctionnalités principales
 

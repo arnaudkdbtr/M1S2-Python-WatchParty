@@ -3,8 +3,6 @@
   Watch Party
 </h1>
 
-🔧 Ce projet est encore en cours de développement.
-
 ## 📌 Présentation du Projet
 
 Watch Party est une application développée en Python permettant d'organiser des soirées de visionnage de vidéos YouTube synchronisées entre plusieurs utilisateurs distants. Chaque participant voit exactement la même chose au même moment, avec des commandes centralisées comme lecture, pause ou repositionnement dans la vidéo.

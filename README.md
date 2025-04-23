@@ -103,6 +103,6 @@ pip install pyperclip pillow
 🔹 Aucun HTML/CSS car hors du programme du cours
 
 ## Auteurs
-- 
-- 
--
+- Arnaud KINDBEITER
+- Maé SENECHAL
+- Valentin LAGARDE

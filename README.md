@@ -24,6 +24,23 @@ pip install pyperclip pillow
 ⚠️ Important : L'application utilise Selenium, qui nécessite Chromedriver. Assurez-vous que :
 - chromedriver est installé sur votre système et est compatible avec votre version de Google Chrome. (La version utilisé par les auteurs du programme est disponible dans le dépot [ici](Annexes/chromedriver.exe))
 
+## 🏗️ Architecture du projet
+
+Le code a été organisé en différents modules pour améliorer la maintenabilité et la lisibilité. Voici le découpage des fichiers :
+
+### 📂 Structure des fichiers
+
+- main.py : Point d'entrée de l'application qui initialise l'interface graphique
+- utils_config.py : Constantes, thèmes, et fonctions utilitaires (comme la gestion de l'icône et ngrok)
+- youtube_controller.py : Contrôle du navigateur YouTube via Selenium
+- server.py : Logique du serveur pour synchroniser les clients
+- client.py : Gestion de la connexion au serveur et traitement des messages
+- gui.py : Interface utilisateur complète de l'application
+
+### 💾 Version complète
+
+Pour des raisons pédagogiques et de référence, la version originale non découpée du code est conservée dans le dossier Annexes/watchparty_complete.py. Cette version contient toutes les fonctionnalités dans un seul fichier et peut être utilisée comme point de départ pour comprendre l'ensemble du projet.
+
 ## 🚀 Fonctionnalités principales
 
 - 📺 **Synchronisation vidéo avancée**

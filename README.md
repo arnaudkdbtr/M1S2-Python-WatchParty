@@ -1,3 +1,10 @@
+![Python Version](https://img.shields.io/badge/Python-3.6%2B-blue)
+![Selenium](https://img.shields.io/badge/Selenium-4.0%2B-green)
+![Chromedriver](https://img.shields.io/badge/Chromedriver-Required-orange)
+![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20Mac-lightgrey)
+![Status](https://img.shields.io/badge/Status-Functional-success)
+![Network](https://img.shields.io/badge/Network-Local%20%7C%20Internet-blueviolet)
+
 <h1 style="display: flex; align-items: center; gap: 10px;">
   <img src="Annexes/Logo%2064x64.png" alt="Logo" width="40" />
   Watch Party
